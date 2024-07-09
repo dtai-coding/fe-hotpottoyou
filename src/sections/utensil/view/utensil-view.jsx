@@ -142,11 +142,6 @@ export default function UtensilView() {
 
   const columns_courses = [
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-    },
-    {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',

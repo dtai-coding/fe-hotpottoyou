@@ -14,13 +14,13 @@ import { RouterLink } from 'src/routes/components';
 
 import { useResponsive } from 'src/hooks/use-responsive';
 
-import { account } from 'src/_mock/account';
+import { useAuthStore } from 'src/stores'; // import Zustand store
 
 import Logo from 'src/components/logo';
 import Scrollbar from 'src/components/scrollbar';
 
 import { NAV } from './config-layout';
-import navConfig from './config-navigation';
+import { navConfigCustomer, navConfigStaffAdmin } from './config-navigation';
 
 // ----------------------------------------------------------------------
 
@@ -29,12 +29,19 @@ export default function Nav({ openNav, onCloseNav }) {
 
   const upLg = useResponsive('up', 'lg');
 
+  const { auth } = useAuthStore((state) => ({
+    auth: state.auth,
+  }));
+
   useEffect(() => {
     if (openNav) {
       onCloseNav();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
+  // Determine which navigation configuration to use
+  const navConfig = !auth.user || auth.user.role === 'customer' ? navConfigCustomer : navConfigStaffAdmin;
 
   const renderAccount = (
     <Box
@@ -49,13 +56,13 @@ export default function Nav({ openNav, onCloseNav }) {
         bgcolor: (theme) => alpha(theme.palette.grey[500], 0.12),
       }}
     >
-      <Avatar src={account.photoURL} alt="photoURL" />
+      <Avatar src={auth.user ? auth.user.photoURL : ''} alt="photoURL" />
 
       <Box sx={{ ml: 2 }}>
-        <Typography variant="subtitle2">{account.displayName}</Typography>
+        <Typography variant="subtitle2">{auth.user ? auth.user.name : 'Guest'}</Typography>
 
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          {account.role}
+          {auth.user ? auth.user.role : 'Role'}
         </Typography>
       </Box>
     </Box>
@@ -68,35 +75,6 @@ export default function Nav({ openNav, onCloseNav }) {
       ))}
     </Stack>
   );
-
-  // const renderUpgrade = (
-  //   <Box sx={{ px: 2.5, pb: 3, mt: 10 }}>
-  //     <Stack alignItems="center" spacing={3} sx={{ pt: 5, borderRadius: 2, position: 'relative' }}>
-  //       <Box
-  //         component="img"
-  //         src="/assets/illustrations/illustration_avatar.png"
-  //         sx={{ width: 100, position: 'absolute', top: -50 }}
-  //       />
-
-  //       <Box sx={{ textAlign: 'center' }}>
-  //         <Typography variant="h6">Get more?</Typography>
-
-  //         <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
-  //           From only $69
-  //         </Typography>
-  //       </Box>
-
-  //       <Button
-  //         href="https://material-ui.com/store/items/minimal-dashboard/"
-  //         target="_blank"
-  //         variant="contained"
-  //         color="inherit"
-  //       >
-  //         Upgrade to Pro
-  //       </Button>
-  //     </Stack>
-  //   </Box>
-  // );
 
   const renderContent = (
     <Scrollbar
@@ -193,7 +171,7 @@ function NavItem({ item }) {
         {item.icon}
       </Box>
 
-      <Box component="span">{item.title} </Box>
+      <Box component="span">{item.title}</Box>
     </ListItemButton>
   );
 }

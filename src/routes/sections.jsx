@@ -33,7 +33,8 @@ export default function Router() {
             </DashboardLayout>
           ),
           children: [
-            { element: <IndexPage />, index: true },
+            { element: <BlogPage />, index: true },
+            { path: 'dashboard', element: <IndexPage /> },
             { path: 'user', element: <UserPage /> },
             { path: 'utensil', element: <UtensilPage /> },
             { path: 'pot', element: <PotPage /> },
