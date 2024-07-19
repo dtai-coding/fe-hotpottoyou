@@ -9,9 +9,7 @@ import Typography from '@mui/material/Typography';
 import useFetchData from 'src/hooks/useFetch';
 
 import axiosClient from 'src/api/axiosClient';
-
-import { useAppStore } from '../../../stores';
-import ProductCartWidget from '../product-cart-widget';
+import { useAppStore, useAuthStore } from 'src/stores';
 
 // ----------------------------------------------------------------------
 
@@ -23,6 +21,9 @@ export default function ProductTypesView() {
   const [loading, setLoading] = useState(false);
   const [createForm] = Form.useForm();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('query') ? searchParams.get('query') : '');
+  const { user } = useAuthStore((state) => state.auth);
+  const isStaff = user?.role === 'staff';
+
   function debounce(func, delay) {
     let timeoutId;
 
@@ -112,16 +113,18 @@ export default function ProductTypesView() {
       key: 'name',
     },
 
-    {
-      title: '',
-      key: 'actions',
-      render: (_, record) => (
-        <Button danger type="primary" onClick={() => handleDelete(record.id)}>
-          Xóa
-        </Button>
-      ),
-    },
-  ];
+    !isStaff
+      ? {
+          title: '',
+          key: 'actions',
+          render: (_, record) => (
+            <Button danger type="primary" onClick={() => handleDelete(record.id)}>
+              Xóa
+            </Button>
+          ),
+        }
+      : null,
+  ].filter(Boolean);
   return (
     <ConfigProvider
       theme={{
@@ -232,9 +235,11 @@ export default function ProductTypesView() {
               </Select.Option>
             ))}
           </Select> */}
-            <Button type="primary" size="large" onClick={() => setOpenModal(true)}>
-              Thêm loại lẩu
-            </Button>
+            {!isStaff && (
+              <Button type="primary" size="large" onClick={() => setOpenModal(true)}>
+                Thêm loại lẩu
+              </Button>
+            )}
           </Flex>
         </Flex>
         <Table
@@ -292,8 +297,6 @@ export default function ProductTypesView() {
           </Grid>
         ))}
       </Grid> */}
-
-        <ProductCartWidget />
       </Container>
     </ConfigProvider>
   );

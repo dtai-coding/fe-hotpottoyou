@@ -8,7 +8,7 @@ export default function IngredientPage() {
   return (
     <>
       <Helmet>
-        <title> Products | Minimal UI </title>
+        <title> Ingredients </title>
       </Helmet>
 
       <IngredientView />

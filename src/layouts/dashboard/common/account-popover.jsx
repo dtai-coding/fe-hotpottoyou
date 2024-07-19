@@ -23,11 +23,6 @@ const GUEST_MENU_OPTIONS = [
     icon: 'eva:log-in-fill',
     path: '/login',
   },
-  {
-    label: 'Register',
-    icon: 'eva:person-add-fill',
-    path: '/register',
-  },
 ];
 
 const LOGGED_IN_MENU_OPTIONS = [
@@ -81,14 +76,14 @@ export default function AccountPopover() {
     if (auth.status === 'authorized' && auth.user) {
       return auth.user.name ? auth.user.name.charAt(0).toUpperCase() : 'U';
     }
-    return 'G';
+    return '⁝';
   };
 
   const getDisplayName = () => {
     if (auth.status === 'authorized' && auth.user) {
       return auth.user.name || 'User';
     }
-    return 'Guest';
+    return 'Please Login';
   };
 
   return (

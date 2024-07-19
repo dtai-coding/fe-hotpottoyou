@@ -8,10 +8,8 @@ import Typography from '@mui/material/Typography';
 
 import useFetchData from 'src/hooks/useFetch';
 
-import { useAppStore } from 'src/stores';
 import axiosClient from 'src/api/axiosClient';
-
-import ProductCartWidget from '../products/product-cart-widget';
+import { useAppStore, useAuthStore } from 'src/stores';
 
 // ----------------------------------------------------------------------
 
@@ -23,6 +21,9 @@ export default function IngredientView() {
   const [loading, setLoading] = useState(false);
   const [createForm] = Form.useForm();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('query') ? searchParams.get('query') : '');
+  const { user } = useAuthStore((state) => state.auth);
+  const isStaff = user?.role === 'staff';
+
   function debounce(func, delay) {
     let timeoutId;
 
@@ -55,7 +56,7 @@ export default function IngredientView() {
   const [loadingCourses, errorCourses, responseCourses] = useFetchData(
     () =>
       axiosClient.get(
-        `/IngredientGroup/ingredient-group?pageIndex=${searchParams.get('page') ? Number(searchParams.get('page')) : 1}&pageSize=${
+        `/v1/ingredient-group?pageIndex=${searchParams.get('page') ? Number(searchParams.get('page')) : 1}&pageSize=${
           searchParams.get('size') ? Number(searchParams.get('size')) : 4
         }${searchParams.get('query') ? `&search=${searchParams.get('query')}` : ''}`
       ),
@@ -111,17 +112,18 @@ export default function IngredientView() {
       dataIndex: 'name',
       key: 'name',
     },
-
-    {
-      title: '',
-      key: 'actions',
-      render: (_, record) => (
-        <Button danger type="primary" onClick={() => handleDelete(record.id)}>
-          Xóa
-        </Button>
-      ),
-    },
-  ];
+    !isStaff
+      ? {
+          title: '',
+          key: 'actions',
+          render: (_, record) => (
+            <Button danger type="primary" onClick={() => handleDelete(record.id)}>
+              Xóa
+            </Button>
+          ),
+        }
+      : null,
+  ].filter(Boolean);
   return (
     <ConfigProvider
       theme={{
@@ -232,9 +234,11 @@ export default function IngredientView() {
               </Select.Option>
             ))}
           </Select> */}
-            <Button type="primary" size="large" onClick={() => setOpenModal(true)}>
-              Thêm
-            </Button>
+            {!isStaff && (
+              <Button type="primary" size="large" onClick={() => setOpenModal(true)}>
+                Thêm
+              </Button>
+            )}
           </Flex>
         </Flex>
         <Table
@@ -292,8 +296,6 @@ export default function IngredientView() {
           </Grid>
         ))}
       </Grid> */}
-
-        <ProductCartWidget />
       </Container>
     </ConfigProvider>
   );

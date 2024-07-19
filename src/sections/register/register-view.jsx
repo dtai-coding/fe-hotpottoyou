@@ -56,11 +56,12 @@ export default function RegisterView() {
         password,
         address,
         gender,
+        avatarUrl: '',
       });
 
       navigate('/login');
     } catch (error) {
-      console.error('Đăng ký thất bại:', error);
+      alert(`Đăng nhập ký bại`);
       // Xử lý lỗi nếu cần
     } finally {
       setLoading(false);

@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import { useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { List, Flex, Form, Input, Modal, Button, Select, ConfigProvider, Typography as TypographyAnt } from 'antd';
+import { List, Flex, Form, Input, Modal, Upload, Button, Select, message, ConfigProvider, Typography as TypographyAnt } from 'antd';
 
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
@@ -9,10 +9,9 @@ import Typography from '@mui/material/Typography';
 import useFetchData from 'src/hooks/useFetch';
 
 import axiosClient from 'src/api/axiosClient';
+import { useAppStore, useAuthStore } from 'src/stores';
 
 import ProductCard from '../product-card';
-import { useAppStore } from '../../../stores';
-import ProductCartWidget from '../product-cart-widget';
 
 // ----------------------------------------------------------------------
 
@@ -24,6 +23,9 @@ export default function ProductsView() {
   const [loading, setLoading] = useState(false);
   const [createForm] = Form.useForm();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('query') ? searchParams.get('query') : '');
+  const { user } = useAuthStore((state) => state.auth);
+  const isStaff = user?.role === 'staff';
+
   function debounce(func, delay) {
     let timeoutId;
 
@@ -52,8 +54,10 @@ export default function ProductsView() {
     }, 500),
     [searchParams, setSearchParams]
   );
+  const [imageUrl, setImageUrl] = useState(null);
   const [loadingType, errorType, responseType] = useFetchData(() => axiosClient.get(`/v1/hotpot-type?pageIndex=1&pageSize=100`));
-  console.log(responseType);
+  const [loadingFlavor, errorFlavor, responseFlavor] = useFetchData(() => axiosClient.get(`/v1/hotpot-flavor?pageIndex=1&pageSize=100`));
+
   const [loadingCourses, errorCourses, responseCourses] = useFetchData(
     () =>
       axiosClient.get(
@@ -68,7 +72,34 @@ export default function ProductsView() {
   console.log(responseCourses);
   const list = responseCourses?.value ? responseCourses.value : [];
   const types = responseType?.value ? responseType.value : [];
-  console.log(list);
+  const flavors = responseFlavor?.value ? responseFlavor.value : [];
+  const props = {
+    name: 'file',
+    accept: 'image/*',
+    beforeUpload: (file) => {
+      const isImage = file.type.startsWith('image/');
+      if (!isImage) {
+        message.error('You can only upload image files!');
+      }
+      const isLt2M = file.size / 1024 / 1024 < 2;
+      if (!isLt2M) {
+        message.error('Image must be smaller than 2MB!');
+      }
+      return false;
+    },
+    onChange: (info) => {
+      getBase64(info.file.originFileObj ? info.file.originFileObj : info.file, (url) => {
+        console.log(url);
+        setImageUrl(url);
+      });
+    },
+  };
+  const getBase64 = (file, callback) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => callback(reader.result);
+    reader.onerror = (error) => message.error(`Error reading file: ${error}`);
+  };
   const handleOpenFilter = () => {
     setOpenFilter(true);
   };
@@ -80,10 +111,13 @@ export default function ProductsView() {
     console.log('Success:', values);
     try {
       setLoading(true);
+      values.imageUrl = imageUrl;
       await axiosClient.post(`/v1/hotpot`, values);
       refetchApp();
       createForm.resetFields();
+      alert('Thêm thành công');
     } catch {
+      alert('Thêm thất bại');
       // notification.error({ message: 'Sorry! Something went wrong. App server error' });
     } finally {
       setLoading(false);
@@ -122,7 +156,9 @@ export default function ProductsView() {
               <Input />
             </Form.Item>
             <Form.Item label="Image" name="imageUrl" rules={[{ required: true, message: 'Please input your imageUrl!' }]}>
-              <Input />
+              <Upload {...props}>
+                <Button>Click to Upload</Button>
+              </Upload>
             </Form.Item>
             <Form.Item label="Price" name="price" rules={[{ required: true, message: 'Please input your price!' }]}>
               <Input />
@@ -130,6 +166,15 @@ export default function ProductsView() {
             <Form.Item label="Type" name="typeID" rules={[{ required: true, message: 'Please input your typeID!' }]}>
               <Select placeholder="Type" allowClear>
                 {types?.map((cl) => (
+                  <Select.Option key={cl?.id} value={cl?.id}>
+                    {cl?.name}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item label="Flavor" name="flavorID" rules={[{ required: true, message: 'Please input your typeID!' }]}>
+              <Select placeholder="Flavor" allowClear>
+                {flavors?.map((cl) => (
                   <Select.Option key={cl?.id} value={cl?.id}>
                     {cl?.name}
                   </Select.Option>
@@ -224,9 +269,11 @@ export default function ProductsView() {
               </Select.Option>
             ))}
           </Select> */}
-            <Button type="primary" size="large" onClick={() => setOpenModal(true)}>
-              Thêm lẩu
-            </Button>
+            {!isStaff && (
+              <Button type="primary" size="large" onClick={() => setOpenModal(true)}>
+                Thêm lẩu
+              </Button>
+            )}
           </Flex>
         </Flex>
         <List
@@ -263,8 +310,6 @@ export default function ProductsView() {
           </Grid>
         ))}
       </Grid> */}
-
-        <ProductCartWidget />
       </Container>
     </ConfigProvider>
   );

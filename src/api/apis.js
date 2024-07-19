@@ -7,25 +7,15 @@ const APIs_URL = {
 };
 
 export const loginAPI = async (data) => {
-  try {
-    console.log('Sending login request with payload:', data);
-    const response = await axiosClient.post(APIs_URL.LOGIN, data);
-    console.log('Login response:', response);
-    return response; // Return the data from the response
-  } catch (error) {
-    console.error('Login API error:', error.response || error.message);
-    throw error;
-  }
+  console.log('Sending login request with payload:', data);
+  const response = await axiosClient.post(APIs_URL.LOGIN, data);
+  console.log('Login response:', response);
+  return response; // Return the data from the response
 };
 
 export const registerAPI = async (data) => {
-  try {
-    const response = await axiosClient.post(APIs_URL.REGISTER, data);
-    return response.data; // Return response data instead of full response
-  } catch (error) {
-    console.error('Register API error:', error.response || error.message);
-    throw error;
-  }
+  const response = await axiosClient.post(APIs_URL.REGISTER, data);
+  return response.data; // Return response data instead of full response
 };
 
 export const getUserByEmailAPI = async (email) => {

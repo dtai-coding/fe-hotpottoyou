@@ -36,12 +36,13 @@ const AxiosInterceptor = () => {
     };
 
     const responseErrorInterceptor = async (error) => {
-      console.log('Response error interceptor triggered:', error);
+      console.log(error);
       // Handle errors from the backend
       if (error.response) {
-        if (error.response.data.data) {
-          return Promise.reject(error.response.data.data.join(', '));
+        if (error.response.data.value) {
+          return Promise.reject(error.response.data.value);
         }
+
         if (error.response.data.message) {
           return Promise.reject(error.response.data.message);
         }

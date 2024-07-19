@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import { useSearchParams } from 'react-router-dom';
 import { useState, useEffect, useCallback } from 'react';
-import { Flex, Form, Input, Modal, Table, Button, ConfigProvider, Typography as TypographyAnt } from 'antd';
+import { Flex, Form, Input, Modal, Table, Image, Upload, Button, message, ConfigProvider, Typography as TypographyAnt } from 'antd';
 
 import Popover from '@mui/material/Popover';
 import MenuItem from '@mui/material/MenuItem';
@@ -12,11 +12,9 @@ import IconButton from '@mui/material/IconButton';
 import useFetchData from 'src/hooks/useFetch';
 
 import axiosClient from 'src/api/axiosClient';
+import { useAppStore, useAuthStore } from 'src/stores';
 
 import Iconify from 'src/components/iconify';
-
-import { useAppStore } from '../../../stores';
-import ProductCartWidget from '../pot-cart-widget';
 
 // ----------------------------------------------------------------------
 
@@ -32,6 +30,9 @@ export default function PotView() {
   const [createForm] = Form.useForm();
   const [updateForm] = Form.useForm();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('query') ? searchParams.get('query') : '');
+  const { user } = useAuthStore((state) => state.auth);
+  const isStaff = user?.role === 'staff';
+
   function debounce(func, delay) {
     let timeoutId;
 
@@ -73,7 +74,57 @@ export default function PotView() {
     searchParams.get('query')
   );
   const list = responseCourses?.value ? responseCourses.value : [];
-  console.log(list);
+
+  const [imageUrl, setImageUrl] = useState(null);
+  const [imageUrl1, setImageUrl1] = useState(null);
+  const props = {
+    name: 'file',
+    accept: 'image/*',
+    beforeUpload: (file) => {
+      const isImage = file.type.startsWith('image/');
+      if (!isImage) {
+        message.error('You can only upload image files!');
+      }
+      const isLt2M = file.size / 1024 / 1024 < 2;
+      if (!isLt2M) {
+        message.error('Image must be smaller than 2MB!');
+      }
+      return false;
+    },
+    onChange: (info) => {
+      getBase64(info.file.originFileObj ? info.file.originFileObj : info.file, (url) => {
+        console.log(url);
+        setImageUrl(url);
+      });
+    },
+  };
+  const props1 = {
+    name: 'file',
+    accept: 'image/*',
+    beforeUpload: (file) => {
+      const isImage = file.type.startsWith('image/');
+      if (!isImage) {
+        message.error('You can only upload image files!');
+      }
+      const isLt2M = file.size / 1024 / 1024 < 2;
+      if (!isLt2M) {
+        message.error('Image must be smaller than 2MB!');
+      }
+      return false;
+    },
+    onChange: (info) => {
+      getBase64(info.file.originFileObj ? info.file.originFileObj : info.file, (url) => {
+        console.log(url);
+        setImageUrl1(url);
+      });
+    },
+  };
+  const getBase64 = (file, callback) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => callback(reader.result);
+    reader.onerror = (error) => message.error(`Error reading file: ${error}`);
+  };
   const handleOpenFilter = () => {
     setOpenFilter(true);
   };
@@ -83,12 +134,15 @@ export default function PotView() {
   };
   const HandleCreate = async (values) => {
     console.log('Success:', values);
+    values.imageUrl = imageUrl;
     try {
       setLoading(true);
       await axiosClient.post(`/v1/utensil`, values);
       refetchApp();
       createForm.resetFields();
+      alert('Thêm thành công');
     } catch {
+      alert('Thêm thất bại');
       // notification.error({ message: 'Sorry! Something went wrong. App server error' });
     } finally {
       setLoading(false);
@@ -110,6 +164,7 @@ export default function PotView() {
 
   const handleUpdate = async (values) => {
     console.log(values);
+    values.imageUrl = imageUrl1;
     try {
       setLoading(true);
       await axiosClient.put(`/v1/utensil/update`, values);
@@ -142,6 +197,12 @@ export default function PotView() {
 
   const columns_courses = [
     {
+      title: 'Ảnh',
+      dataIndex: 'imageUrl',
+      key: 'imageUrl',
+      render: (url) => <Image src={url} width={200} />,
+    },
+    {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
@@ -166,90 +227,97 @@ export default function PotView() {
       dataIndex: 'price',
       key: 'price',
     },
-    {
-      title: '',
-      align: 'center',
-      width: 80,
-      render: (_, record) => (
-        <>
-          <IconButton onClick={(event) => handleOpenMenu(event, record.id, record)}>
-            <Iconify icon="eva:more-vertical-fill" />
-          </IconButton>
+    !isStaff
+      ? {
+          title: '',
+          align: 'center',
+          width: 80,
+          render: (_, record) => (
+            <>
+              <IconButton onClick={(event) => handleOpenMenu(event, record.id, record)}>
+                <Iconify icon="eva:more-vertical-fill" />
+              </IconButton>
 
-          <Popover
-            open={!!open}
-            anchorEl={open}
-            onClose={handleCloseMenu}
-            anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-            PaperProps={{
-              sx: { width: 140 },
-            }}
-          >
-            <MenuItem
-              onClick={() => {
-                setOpenUpdate(rowId);
-                handleCloseMenu();
-              }}
-            >
-              <Iconify icon="eva:edit-fill" sx={{ mr: 2 }} />
-              Edit
-            </MenuItem>
+              <Popover
+                open={!!open}
+                anchorEl={open}
+                onClose={handleCloseMenu}
+                anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                PaperProps={{
+                  sx: { width: 140 },
+                }}
+              >
+                <MenuItem
+                  onClick={() => {
+                    setOpenUpdate(rowId);
+                    handleCloseMenu();
+                  }}
+                >
+                  <Iconify icon="eva:edit-fill" sx={{ mr: 2 }} />
+                  Edit
+                </MenuItem>
 
-            <MenuItem onClick={() => handleDelete(rowId)} sx={{ color: 'error.main' }}>
-              <Iconify icon="eva:trash-2-outline" sx={{ mr: 2 }} />
-              Delete
-            </MenuItem>
-          </Popover>
+                <MenuItem onClick={() => handleDelete(rowId)} sx={{ color: 'error.main' }}>
+                  <Iconify icon="eva:trash-2-outline" sx={{ mr: 2 }} />
+                  Delete
+                </MenuItem>
+              </Popover>
 
-          <Modal
-            title="Edit Pot"
-            open={openUpdate === record.id}
-            onOk={() => setOpenUpdate(null)}
-            onCancel={() => setOpenUpdate(null)}
-            width={1000}
-            style={{ top: 20 }}
-            footer={null}
-          >
-            <Form
-              form={updateForm}
-              layout="vertical"
-              onFinish={handleUpdate}
-              onFinishFailed={OnFinishFailed}
-              autoComplete="off"
-              initialValues={{ ...updateRecord, id: rowId }}
-            >
-              <Form.Item label="Name" name="name">
-                <Input />
-              </Form.Item>
-              <Form.Item label="Material" name="material">
-                <Input />
-              </Form.Item>
-              <Form.Item label="Size" name="size">
-                <Input />
-              </Form.Item>
-              <Form.Item label="Quantity" name="quantity">
-                <Input />
-              </Form.Item>
-              <Form.Item label="Price" name="price">
-                <Input />
-              </Form.Item>
+              <Modal
+                title="Edit Pot"
+                open={openUpdate === record.id}
+                onOk={() => setOpenUpdate(null)}
+                onCancel={() => setOpenUpdate(null)}
+                width={1000}
+                style={{ top: 20 }}
+                footer={null}
+              >
+                <Form
+                  form={updateForm}
+                  layout="vertical"
+                  onFinish={handleUpdate}
+                  onFinishFailed={OnFinishFailed}
+                  autoComplete="off"
+                  initialValues={{ ...updateRecord, id: rowId }}
+                >
+                  <Form.Item label="Image" name="imageUrl" rules={[{ required: true, message: 'Please input your imageUrl!' }]}>
+                    <Upload {...props1}>
+                      <Button>Click to Upload</Button>
+                    </Upload>
+                  </Form.Item>
+                  <Form.Item label="Name" name="name">
+                    <Input />
+                  </Form.Item>
+                  <Form.Item label="Material" name="material">
+                    <Input />
+                  </Form.Item>
+                  <Form.Item label="Size" name="size">
+                    <Input />
+                  </Form.Item>
+                  <Form.Item label="Quantity" name="quantity">
+                    <Input />
+                  </Form.Item>
+                  <Form.Item label="Price" name="price">
+                    <Input />
+                  </Form.Item>
 
-              <Form.Item style={{ marginBottom: 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Button loading={loading} type="primary" htmlType="submit">
-                    Edit
-                  </Button>
-                  <Form.Item name="type" style={{ flex: 1 }} />
-                  <Form.Item name="id" style={{ flex: 1 }} />
-                </div>
-              </Form.Item>
-            </Form>
-          </Modal>
-        </>
-      ),
-    },
-  ];
+                  <Form.Item style={{ marginBottom: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Button loading={loading} type="primary" htmlType="submit">
+                        Edit
+                      </Button>
+                      <Form.Item name="type" style={{ flex: 1 }} />
+                      <Form.Item name="id" style={{ flex: 1 }} />
+                    </div>
+                  </Form.Item>
+                </Form>
+              </Modal>
+            </>
+          ),
+        }
+      : null,
+  ].filter(Boolean);
 
   return (
     <ConfigProvider
@@ -273,6 +341,11 @@ export default function PotView() {
           footer={null}
         >
           <Form form={createForm} layout="vertical" onFinish={HandleCreate} onFinishFailed={OnFinishFailed} autoComplete="off" initialValues={null}>
+            <Form.Item label="Image" name="imageUrl" rules={[{ required: true, message: 'Please input your imageUrl!' }]}>
+              <Upload {...props}>
+                <Button>Click to Upload</Button>
+              </Upload>
+            </Form.Item>
             <Form.Item label="Name" name="name" rules={[{ required: true, message: 'Please input your username!' }]}>
               <Input />
             </Form.Item>
@@ -310,9 +383,11 @@ export default function PotView() {
                 handleSearch(e.target.value);
               }}
             />
-            <Button type="primary" size="large" onClick={() => setOpenCreate(true)}>
-              Add Pots
-            </Button>
+            {!isStaff && (
+              <Button type="primary" size="large" onClick={() => setOpenCreate(true)}>
+                Add Pots
+              </Button>
+            )}
           </Flex>
         </Flex>
         <Table
@@ -337,7 +412,6 @@ export default function PotView() {
             setSearchParams(queryParams.toString());
           }}
         />
-        <ProductCartWidget />
       </Container>
     </ConfigProvider>
   );

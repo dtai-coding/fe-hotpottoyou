@@ -1,13 +1,15 @@
-import { useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Drawer from '@mui/material/Drawer';
 import Avatar from '@mui/material/Avatar';
 import { alpha } from '@mui/material/styles';
+import Collapse from '@mui/material/Collapse';
 import Typography from '@mui/material/Typography';
 import ListItemButton from '@mui/material/ListItemButton';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 
 import { usePathname } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
@@ -20,7 +22,7 @@ import Logo from 'src/components/logo';
 import Scrollbar from 'src/components/scrollbar';
 
 import { NAV } from './config-layout';
-import { navConfigCustomer, navConfigStaffAdmin } from './config-navigation';
+import { navConfigStaff, navConfigAdmin, navConfigEmpty } from './config-navigation';
 
 // ----------------------------------------------------------------------
 
@@ -40,8 +42,15 @@ export default function Nav({ openNav, onCloseNav }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
-  // Determine which navigation configuration to use
-  const navConfig = !auth.user || auth.user.role === 'customer' ? navConfigCustomer : navConfigStaffAdmin;
+  let navConfig = navConfigEmpty;
+
+  if (auth.user) {
+    if (auth.user.role === 'staff') {
+      navConfig = navConfigStaff;
+    } else if (auth.user.role === 'admin') {
+      navConfig = navConfigAdmin;
+    }
+  }
 
   const renderAccount = (
     <Box
@@ -59,7 +68,7 @@ export default function Nav({ openNav, onCloseNav }) {
       <Avatar src={auth.user ? auth.user.photoURL : ''} alt="photoURL" />
 
       <Box sx={{ ml: 2 }}>
-        <Typography variant="subtitle2">{auth.user ? auth.user.name : 'Guest'}</Typography>
+        <Typography variant="subtitle2">{auth.user ? auth.user.name : 'User'}</Typography>
 
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           {auth.user ? auth.user.role : 'Role'}
@@ -143,36 +152,61 @@ Nav.propTypes = {
 
 function NavItem({ item }) {
   const pathname = usePathname();
-
   const active = item.path === pathname;
+  const [open, setOpen] = useState(false);
+
+  const handleToggle = () => {
+    setOpen(!open);
+  };
 
   return (
-    <ListItemButton
-      component={RouterLink}
-      href={item.path}
-      sx={{
-        minHeight: 44,
-        borderRadius: 0.75,
-        typography: 'body2',
-        color: 'text.secondary',
-        textTransform: 'capitalize',
-        fontWeight: 'fontWeightMedium',
-        ...(active && {
-          color: 'primary.main',
-          fontWeight: 'fontWeightSemiBold',
-          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-          '&:hover': {
-            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
-          },
-        }),
-      }}
-    >
-      <Box component="span" sx={{ width: 24, height: 24, mr: 2 }}>
-        {item.icon}
-      </Box>
-
-      <Box component="span">{item.title}</Box>
-    </ListItemButton>
+    <>
+      <ListItemButton
+        component={item.path ? RouterLink : 'div'}
+        href={item.path}
+        onClick={item.children ? handleToggle : undefined}
+        sx={{
+          minHeight: 44,
+          borderRadius: 0.75,
+          typography: 'body2',
+          color: 'text.secondary',
+          textTransform: 'capitalize',
+          fontWeight: 'fontWeightMedium',
+          ...(active && {
+            color: 'primary.main',
+            fontWeight: 'fontWeightSemiBold',
+            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+            '&:hover': {
+              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16),
+            },
+          }),
+        }}
+      >
+        <Box component="span" sx={{ width: 24, height: 24, mr: 2 }}>
+          {item.icon}
+        </Box>
+        <Box component="span" sx={{ flexGrow: 1 }}>
+          {item.title}
+        </Box>
+        {item.children && (
+          <ExpandLessIcon
+            sx={{
+              transition: 'transform 0.3s',
+              transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+            }}
+          />
+        )}
+      </ListItemButton>
+      {item.children && (
+        <Collapse in={open} timeout="auto" unmountOnExit>
+          <Stack component="div" spacing={0.5} sx={{ pl: 4 }}>
+            {item.children.map((subItem) => (
+              <NavItem key={subItem.title} item={subItem} />
+            ))}
+          </Stack>
+        </Collapse>
+      )}
+    </>
   );
 }
 

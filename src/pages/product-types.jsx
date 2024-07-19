@@ -8,7 +8,7 @@ export default function ProductTypesPage() {
   return (
     <>
       <Helmet>
-        <title> Products | Minimal UI </title>
+        <title> ProductTypes </title>
       </Helmet>
 
       <ProductTypesView />

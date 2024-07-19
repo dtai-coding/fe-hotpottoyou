@@ -16,7 +16,6 @@ import axiosClient from 'src/api/axiosClient';
 import Iconify from 'src/components/iconify';
 
 import { useAppStore } from '../../../stores';
-import ProductCartWidget from '../user-cart-widget';
 
 // ----------------------------------------------------------------------
 
@@ -362,7 +361,6 @@ export default function UtensilView() {
             setSearchParams(queryParams.toString());
           }}
         />
-        <ProductCartWidget />
       </Container>
     </ConfigProvider>
   );

@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import PropTypes from 'prop-types';
 import { useState, useEffect } from 'react';
-import { Form, Input, Modal, Button, Select } from 'antd';
+import { App, Form, Input, Modal, Button, Select, Upload } from 'antd';
 
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
@@ -13,8 +13,8 @@ import useFetchData from 'src/hooks/useFetch';
 
 import { fCurrency } from 'src/utils/format-number';
 
-import { useAppStore } from 'src/stores';
 import axiosClient from 'src/api/axiosClient';
+import { useAppStore, useAuthStore } from 'src/stores';
 
 import Label from 'src/components/label';
 
@@ -24,11 +24,45 @@ export default function ShopProductCard({ product }) {
   console.log(product);
   const refetchApp = useAppStore((state) => state.refetchApp);
   const [loading, setLoading] = useState(false);
-  const [loadingType, errorType, responseType] = useFetchData(() => axiosClient.get(`/api/v1/hotpot-type?pageIndex=1&pageSize=100`));
+  const { message } = App.useApp();
+  const [loadingType, errorType, responseType] = useFetchData(() => axiosClient.get(`/v1/hotpot-type?pageIndex=1&pageSize=100`));
+  const [loadingFlavor, errorFlavor, responseFlavor] = useFetchData(() => axiosClient.get(`/v1/hotpot-flavor?pageIndex=1&pageSize=100`));
   const types = responseType?.value ? responseType.value : [];
+  const flavors = responseFlavor?.value ? responseFlavor.value : [];
   const [openModal, setOpenModal] = useState(false);
 
   const [createForm] = Form.useForm();
+  const [imageUrl, setImageUrl] = useState(null);
+  const props = {
+    name: 'file',
+    accept: 'image/*',
+    beforeUpload: (file) => {
+      const isImage = file.type.startsWith('image/');
+      if (!isImage) {
+        message.error('You can only upload image files!');
+      }
+      const isLt2M = file.size / 1024 / 1024 < 2;
+      if (!isLt2M) {
+        message.error('Image must be smaller than 2MB!');
+      }
+      return false;
+    },
+    onChange: (info) => {
+      console.log(info);
+      getBase64(info.file.originFileObj ? info.file.originFileObj : info.file, (url) => {
+        console.log(url);
+        setImageUrl(url);
+      });
+    },
+  };
+  const getBase64 = (file, callback) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => callback(reader.result);
+    reader.onerror = (error) => message.error(`Error reading file: ${error}`);
+  };
+  const { user } = useAuthStore((state) => state.auth);
+  const isStaff = user?.role === 'staff';
 
   const handleDelete = async () => {
     try {
@@ -46,13 +80,18 @@ export default function ShopProductCard({ product }) {
     try {
       setLoading(true);
       console.log(types);
+      console.log(flavors);
       console.log(values.typeID);
-      values.typeID = types.find((t) => t.name === values.typeID).id;
-
-      await axiosClient.put(`/api/v1/hotpot/update`, values);
+      values.typeID = types.find((t) => t.name === values.type).id;
+      values.flavorID = flavors.find((t) => t.name === values.flavor).id;
+      console.log(imageUrl);
+      if (imageUrl) values.imageUrl = imageUrl;
+      await axiosClient.put(`/v1/hotpot/update`, values);
+      alert('Cập nhật thành công');
       refetchApp();
-    } catch {
-      // notification.error({ message: 'Sorry! Something went wrong. App server error' });
+    } catch (err) {
+      console.log(err);
+      message.error('Sorry! Something went wrong. App server error');
     } finally {
       setLoading(false);
     }
@@ -118,7 +157,8 @@ export default function ShopProductCard({ product }) {
       imageUrl: product.imageUrl,
       description: product.description,
       price: product.price,
-      typeID: product.type,
+      type: product.type,
+      flavor: product.flavor,
     });
   }, [product, createForm]);
   return (
@@ -150,14 +190,25 @@ export default function ShopProductCard({ product }) {
             <Input />
           </Form.Item>
           <Form.Item label="Image" name="imageUrl" rules={[{ required: true, message: 'Please input your imageUrl!' }]}>
-            <Input />
+            <Upload {...props}>
+              <Button>Click to Upload</Button>
+            </Upload>
           </Form.Item>
           <Form.Item label="Price" name="price" rules={[{ required: true, message: 'Please input your price!' }]}>
             <Input />
           </Form.Item>
-          <Form.Item label="Type" name="typeID" rules={[{ required: true, message: 'Please input your typeID!' }]}>
+          <Form.Item label="Type" name="type" rules={[{ required: true, message: 'Please input your typeID!' }]}>
             <Select placeholder="Type" allowClear>
               {types?.map((cl) => (
+                <Select.Option key={cl?.id} value={cl?.name}>
+                  {cl?.name}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item label="Flavor" name="flavor" rules={[{ required: true, message: 'Please input your flavor!' }]}>
+            <Select placeholder="Flavor" allowClear>
+              {flavors?.map((cl) => (
                 <Select.Option key={cl?.id} value={cl?.name}>
                   {cl?.name}
                 </Select.Option>
@@ -170,7 +221,7 @@ export default function ShopProductCard({ product }) {
 
           <Form.Item>
             <Button loading={loading} type="primary" htmlType="submit">
-              Submit
+              Cập nhật
             </Button>
           </Form.Item>
         </Form>
@@ -192,12 +243,16 @@ export default function ShopProductCard({ product }) {
           <Typography variant="subtitle1">{product.size}</Typography>
           {renderPrice}
         </Stack>
-        <Button type="primary" onClick={() => setOpenModal(true)}>
-          Xem
-        </Button>
-        <Button danger type="primary" onClick={() => handleDelete()}>
-          Xóa
-        </Button>
+        {!isStaff && (
+          <>
+            <Button type="primary" onClick={() => setOpenModal(true)}>
+              Xem
+            </Button>
+            <Button danger type="primary" onClick={() => handleDelete()}>
+              Xóa
+            </Button>
+          </>
+        )}
       </Stack>
     </Card>
   );
