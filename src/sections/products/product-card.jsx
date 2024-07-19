@@ -67,7 +67,7 @@ export default function ShopProductCard({ product }) {
   const handleDelete = async () => {
     try {
       console.log('Deleteing...');
-      await axiosClient.delete(`/api/v1/hotpot?id=${product.id}`);
+      await axiosClient.delete(`/v1/hotpot?id=${product.id}`);
       // notification.info({ message: 'Delete thành công' })
       refetchApp();
     } catch (e) {

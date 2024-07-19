@@ -26,21 +26,21 @@ const GUEST_MENU_OPTIONS = [
 ];
 
 const LOGGED_IN_MENU_OPTIONS = [
-  {
-    label: 'Home',
-    icon: 'eva:home-fill',
-    path: '/',
-  },
-  {
-    label: 'Profile',
-    icon: 'eva:person-fill',
-    path: '/profile',
-  },
-  {
-    label: 'Settings',
-    icon: 'eva:settings-2-fill',
-    path: '/settings',
-  },
+  // {
+  //   label: 'Home',
+  //   icon: 'eva:home-fill',
+  //   path: '/',
+  // },
+  // {
+  //   label: 'Profile',
+  //   icon: 'eva:person-fill',
+  //   path: '/profile',
+  // },
+  // {
+  //   label: 'Settings',
+  //   icon: 'eva:settings-2-fill',
+  //   path: '/settings',
+  // },
 ];
 
 export default function AccountPopover() {
